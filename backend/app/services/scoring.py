@@ -10,5 +10,26 @@ def get_calculated_ops(seasons:list ) -> float:
         weight = decay ** i
         weighted_sum =weighted_sum + (ops * weight)
         total_weight = total_weight + weight
-        print(f"i={i}, ops={ops}, weight={weight}, weighted_sum={weighted_sum}, total_weight={total_weight}")
+        
     return weighted_sum / total_weight
+
+def get_plate_discipline(seasons: list) -> float:
+    walks = 0 
+    strikeouts = 0
+    for i in range(len(seasons)):
+        season = seasons[i]
+        walk = float(season["stat"]["baseOnBalls"])
+        strikeout = float(season["stat"]["strikeOuts"])
+        walks += walk
+        strikeouts += strikeout
+    
+    if strikeouts == 0:
+        return 0 
+    else:
+        return walks/strikeouts
+if __name__ == "__main__":
+    test_seasons = [
+        {"stat": {"baseOnBalls": "40", "strikeOuts": "145"}},
+        {"stat": {"baseOnBalls": "47", "strikeOuts": "175"}},
+    ]
+    print(get_plate_discipline(test_seasons))
