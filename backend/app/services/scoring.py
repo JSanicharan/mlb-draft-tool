@@ -27,9 +27,3 @@ def get_plate_discipline(seasons: list) -> float:
         return 0 
     else:
         return walks/strikeouts
-if __name__ == "__main__":
-    test_seasons = [
-        {"stat": {"baseOnBalls": "40", "strikeOuts": "145"}},
-        {"stat": {"baseOnBalls": "47", "strikeOuts": "175"}},
-    ]
-    print(get_plate_discipline(test_seasons))
