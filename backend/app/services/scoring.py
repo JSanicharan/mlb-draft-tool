@@ -68,3 +68,16 @@ def get_standard_deviation(values:list) -> float:
 def get_consistency_score(values: list) -> float:
     result = get_standard_deviation(values)
     return 1 / (1+result)
+
+def get_age_multiplier(age: int) -> float:
+    peak_age = 28
+    k = 0.003
+    multiplier = 1 - k * (age-peak_age) ** 2
+    floor = 0.5
+    if multiplier < floor:
+        return floor 
+    else: 
+        return multiplier
+if __name__ == "__main__":
+    for test_age in [22, 25, 28, 31, 35, 40]:
+        print(test_age, get_age_multiplier(test_age))
