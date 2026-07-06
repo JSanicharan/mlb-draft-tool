@@ -104,3 +104,23 @@ def get_defense_modifier(seasons: list) -> float:
 def normalize(value: float, min_val: float, max_val: float) -> float:
     return (value-min_val) / (max_val - min_val)
 
+
+def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, position: str) -> float:
+    ops_values = []
+    for season in offense_seasons:
+        ops_values.append(float(season["stat"]["ops"]))
+    ops = get_calculated_ops(offense_seasons)
+    discipline = get_plate_discipline(offense_seasons)
+    iso = get_calculated_iso(offense_seasons)
+    
+    consistency = get_consistency_score(ops_values)
+    scaled_ops = normalize(ops, 0.55, 1.05)
+    scaled_discipline = normalize(discipline, 0.15, 0.7)
+    scaled_iso  = normalize(iso, 0.08, 0.3)
+    a_multiplier = get_age_multiplier(age)
+    p_multiplier = get_position_multiplier(position)
+    d_multiplier = get_defense_modifier(fielding_seasons)
+
+    base_score = (scaled_ops * 0.4) + (scaled_discipline * 0.25) + (scaled_iso * 0.2) +(consistency * 0.15)
+    final_score = base_score * a_multiplier * p_multiplier * d_multiplier
+    return final_score
