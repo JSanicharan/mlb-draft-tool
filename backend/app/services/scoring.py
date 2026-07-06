@@ -98,3 +98,11 @@ def get_defense_modifier(seasons: list) -> float:
         current_percent = float(season["stat"]["fieldingPercentage"])
         total += current_percent
     return total/len(seasons)
+
+# TODO: replace with dynamic percentile bounds from league-wide data (V2)
+
+def normalize(value: float, min_val: float, max_val: float) -> float:
+    return (value-min_val) / (max_val - min_val)
+
+if __name__ == "__main__":
+    print(normalize(0.850, 0.550, 1.050))
