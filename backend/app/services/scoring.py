@@ -104,5 +104,3 @@ def get_defense_modifier(seasons: list) -> float:
 def normalize(value: float, min_val: float, max_val: float) -> float:
     return (value-min_val) / (max_val - min_val)
 
-if __name__ == "__main__":
-    print(normalize(0.850, 0.550, 1.050))
