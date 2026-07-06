@@ -1,7 +1,17 @@
 from fastapi import FastAPI 
 from app.services.mlb_client import search_player, get_career_offense_stats, get_career_fielding_stats, get_player_info
 from app.services.scoring import get_draft_score
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def read_root():
     return {"status": "ok"}
