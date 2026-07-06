@@ -80,6 +80,8 @@ def get_age_multiplier(age: int) -> float:
         return multiplier
 
 def get_position_multiplier(position: str) -> float:
+    if position in ["LF", "CF", "RF"]:
+        position = "OF"
     multipliers = {
         "C": 1.20,
         "SS": 1.15,
@@ -95,7 +97,7 @@ def get_defense_modifier(seasons: list) -> float:
     total = 0 
     for i in range(len(seasons)):
         season = seasons[i]
-        current_percent = float(season["stat"]["fieldingPercentage"])
+        current_percent = float(season["stat"].get("fieldingPercentage", 1.0))
         total += current_percent
     return total/len(seasons)
 
