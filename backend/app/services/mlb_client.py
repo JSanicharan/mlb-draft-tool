@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+from fastapi import HTTPException
 
 async def search_player(name:str):
     async with httpx.AsyncClient() as client:
@@ -27,6 +28,8 @@ async def get_player_bundle(player_id : int):
     get_career_offense_stats(player_id),
     get_career_fielding_stats(player_id)
     )
+    if not player_info.get("people"):
+        raise HTTPException(status_code=404, detail="Player not found")
     offense_seasons = offense["stats"][0]["splits"]
     fielding_seasons = defense["stats"][0]["splits"]
     age =  player_info["people"][0]["currentAge"]
