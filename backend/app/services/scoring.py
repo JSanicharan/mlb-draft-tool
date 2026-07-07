@@ -9,7 +9,7 @@ def get_calculated_ops(seasons:list ) -> float:
         season = seasons_reversed_list[i]
         ops = float(season["stat"]["ops"])
         weight = decay ** i
-        weighted_sum =weighted_sum + (ops * weight)
+        weighted_sum = weighted_sum + (ops * weight)
         total_weight = total_weight + weight
         
     return weighted_sum / total_weight
