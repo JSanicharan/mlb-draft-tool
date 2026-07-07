@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import './App.css'
+import { Routes, Route, useNavigate} from 'react-router-dom'
+import PlayerCard from './PlayerCard'
 
 function App() {
   const [name, setName] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState (null);
   const [loading, setLoading] = useState(false);
-  const [draftScore, setDraftScore] = useState(null);
+  const navigate = useNavigate();
 
   async function handleSearch() {
     const response = await fetch("http://127.0.0.1:8000/players/search?name=" + name);
@@ -14,27 +16,26 @@ function App() {
     const people= data.people;
     setSearchResults(people);
   }
-  async function handleGetDraftScore(player) {
-    const response = await fetch("http://127.0.0.1:8000/players/"+ player.id + "/draft-score" );
-    const data = await response.json();
-    setDraftScore(data);
-  }
-
-  return (
-    <>
-      <input 
-        value={name} 
-        onChange={(event) => setName(event.target.value)}
-      />
-      <button onClick={() => handleSearch()}>Search</button>
-      {searchResults.map((player) =>(
-        <div key = {player.id}>
-          {player.fullName}
-          <button onClick={() => { setSelectedPlayer(player); handleGetDraftScore(player); }}>Select</button>
-        </div>
-      ))}
-      {draftScore && <div>Draft Score: {draftScore}</div>}
-    </>
+  
+return (
+    <Routes>
+      <Route path="/" element={
+        <>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <button onClick={() => handleSearch()}>Search</button>
+          {searchResults.map((player) => (
+            <div key={player.id}>
+              {player.fullName}
+              <button onClick={() => { setSelectedPlayer(player);navigate("/players/" + player.id);}}>Select</button>
+            </div>
+          ))}
+        </>
+      } />
+      <Route path="/players/:playerId" element={<PlayerCard />} />
+    </Routes>
   )
 }
 
