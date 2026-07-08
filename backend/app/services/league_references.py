@@ -1,10 +1,12 @@
 import httpx
 import asyncio
+reference_distributions = None
+
 async def fetch_qualified_hitters(season : int):
     async with httpx.AsyncClient() as client:
         response = await  client.get("https://statsapi.mlb.com/api/v1/stats", params = {"stats" : "season", "group" : "hitting", "season" : season, "sportId" : "1", "limit" : "200"})
         return response.json()
-    
+
 def build_reference_distributions(raw_data: dict):
     players = raw_data["stats"][0]["splits"]
     ops = []
@@ -25,3 +27,7 @@ def build_reference_distributions(raw_data: dict):
         "discipline": discipline,
         "iso": iso,
     }
+async def refresh_reference_data():
+    global reference_distributions
+    data = await fetch_qualified_hitters(2025)
+    reference_distributions = build_reference_distributions(data)

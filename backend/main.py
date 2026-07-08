@@ -2,9 +2,14 @@ from fastapi import FastAPI
 from app.services.mlb_client import search_player, get_career_offense_stats, get_career_fielding_stats, get_player_bundle
 from app.services.scoring import get_draft_score
 from fastapi.middleware.cors import CORSMiddleware
+from app.services import league_references
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup_event():
+    await league_references.refresh_reference_data()
+    
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

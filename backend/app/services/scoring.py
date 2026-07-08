@@ -1,4 +1,6 @@
 import math
+from scipy.stats import percentileofscore
+from app.services import league_references
 def get_calculated_ops(seasons:list ) -> float:
     decay = 0.7
     weighted_sum = 0
@@ -13,6 +15,9 @@ def get_calculated_ops(seasons:list ) -> float:
         total_weight = total_weight + weight
         
     return weighted_sum / total_weight
+
+def normalize(value: float, min_val: float, max_val: float) -> float:
+    return (value-min_val) / (max_val - min_val)
 
 def get_plate_discipline(seasons: list) -> float:
     walks = 0 
@@ -101,12 +106,6 @@ def get_defense_modifier(seasons: list) -> float:
         total += current_percent
     return total/len(seasons)
 
-# TODO: replace with dynamic percentile bounds from league-wide data (V2)
-
-def normalize(value: float, min_val: float, max_val: float) -> float:
-    return (value-min_val) / (max_val - min_val)
-
-
 def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, position: str) -> float:
     ops_values = []
     for season in offense_seasons:
@@ -116,9 +115,9 @@ def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, pos
     iso = get_calculated_iso(offense_seasons)
     
     consistency = get_consistency_score(ops_values)
-    scaled_ops = normalize(ops, 0.55, 1.05)
-    scaled_discipline = normalize(discipline, 0.15, 0.7)
-    scaled_iso  = normalize(iso, 0.08, 0.3)
+    scaled_ops = get_percentile_score(ops, league_references.reference_distributions["ops"])
+    scaled_discipline = get_percentile_score(discipline, league_references.reference_distributions["discipline"])
+    scaled_iso = get_percentile_score(iso, league_references.reference_distributions["iso"])
     a_multiplier = get_age_multiplier(age)
     p_multiplier = get_position_multiplier(position)
     d_multiplier = get_defense_modifier(fielding_seasons)
@@ -126,3 +125,8 @@ def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, pos
     base_score = (scaled_ops * 0.4) + (scaled_discipline * 0.25) + (scaled_iso * 0.2) +(consistency * 0.15)
     final_score = base_score * a_multiplier * p_multiplier * d_multiplier
     return final_score
+
+def get_percentile_score(value: float, distribution : list) -> float:
+    result = percentileofscore(distribution, value)
+    result = result / 100
+    return result
