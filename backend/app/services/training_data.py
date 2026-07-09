@@ -97,7 +97,7 @@ def build_fielding_lookup(raw_data: dict) -> dict:
                 lookup[key] = entry
     return lookup
 
-def add_labels(pairs:list , fielding_lookup: dict) -> list:
+def add_labels(pairs: list, fielding_lookup: dict, training_reference_distributions: dict) -> list:
     for i in range(len(pairs)):
         pair = pairs[i]
         label_season = pair["label_source"]
@@ -110,14 +110,15 @@ def add_labels(pairs:list , fielding_lookup: dict) -> list:
         if key in fielding_lookup:
             fielding_seasons = [fielding_lookup[key]]
         else:
-            fielding_seasons = [{"stat" : {}}]
+            fielding_seasons = [{"stat": {}}]
         offense_seasons = [label_season]
 
-        score = get_draft_score(offense_seasons, fielding_seasons, age, position)
+        ref_dist = training_reference_distributions[int(season)]
+        score = get_draft_score(offense_seasons, fielding_seasons, age, position, ref_dist)
         pair["label"] = score
     return pairs
 
-def extract_features(season_entry: dict, fielding_lookup: dict) -> dict:
+def extract_features(season_entry: dict, fielding_lookup: dict, training_reference_distributions: dict) -> dict:
     ops = float(season_entry["stat"]["ops"])
     walks = float(season_entry["stat"]["baseOnBalls"])
     strikeouts = float(season_entry["stat"]["strikeOuts"])
@@ -132,9 +133,11 @@ def extract_features(season_entry: dict, fielding_lookup: dict) -> dict:
     position = season_entry["position"]["abbreviation"]
     position_value = get_position_multiplier(position)
 
-    ops_scaled = get_percentile_score(ops, league_references.reference_distributions["ops"])
-    discipline_scaled = get_percentile_score(discipline, league_references.reference_distributions["discipline"])
-    iso_scaled = get_percentile_score(iso, league_references.reference_distributions["iso"])
+    ref_dist = training_reference_distributions[int(season_entry["season"])]
+
+    ops_scaled = get_percentile_score(ops, ref_dist["ops"])
+    discipline_scaled = get_percentile_score(discipline, ref_dist["discipline"])
+    iso_scaled = get_percentile_score(iso, ref_dist["iso"])
 
     player_id = season_entry["player"]["id"]
     season = season_entry["season"]
@@ -144,7 +147,7 @@ def extract_features(season_entry: dict, fielding_lookup: dict) -> dict:
     else:
         fielding_seasons = [{"stat": {}}]
 
-    input_draft_score = get_draft_score([season_entry], fielding_seasons, age, position)
+    input_draft_score = get_draft_score([season_entry], fielding_seasons, age, position, ref_dist)
 
     return {
         "ops": ops_scaled,
@@ -155,14 +158,14 @@ def extract_features(season_entry: dict, fielding_lookup: dict) -> dict:
         "input_draft_score": input_draft_score,
     }
 
-def build_dataset(labeled_pairs: list, fielding_lookup: dict) -> tuple:
+
+def build_dataset(labeled_pairs: list, fielding_lookup: dict, training_reference_distributions: dict) -> tuple:
     x = []
     y = []
     for i in range(len(labeled_pairs)):
         pair = labeled_pairs[i]
-        features = extract_features(pair["input"], fielding_lookup)
-
-        returned_list = [features["ops"], features["discipline"], features["iso"], features["age"], features["position"],features["input_draft_score"]]
+        features = extract_features(pair["input"], fielding_lookup, training_reference_distributions)
+        returned_list = [features["ops"], features["discipline"], features["iso"], features["age"], features["position"], features["input_draft_score"]]
         x.append(returned_list)
         y.append(pair["label"])
-    return x , y
+    return x, y

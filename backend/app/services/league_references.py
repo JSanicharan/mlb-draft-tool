@@ -31,3 +31,10 @@ async def refresh_reference_data():
     global reference_distributions
     data = await fetch_qualified_hitters(2025)
     reference_distributions = build_reference_distributions(data)
+
+async def build_training_reference_distributions(seasons: list) -> dict:
+    training_distributions = {}
+    for season in seasons:
+        raw_data = await fetch_qualified_hitters(season)
+        training_distributions[season] = build_reference_distributions(raw_data)
+    return training_distributions

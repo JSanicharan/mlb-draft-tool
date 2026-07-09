@@ -103,23 +103,26 @@ def get_defense_modifier(seasons: list) -> float:
         total += current_percent
     return total/len(seasons)
 
-def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, position: str) -> float:
+def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, position: str, reference_distributions: dict = None) -> float:
     ops_values = []
     for season in offense_seasons:
         ops_values.append(float(season["stat"]["ops"]))
     ops = get_calculated_ops(offense_seasons)
     discipline = get_plate_discipline(offense_seasons)
     iso = get_calculated_iso(offense_seasons)
-    
+
+    if reference_distributions is None:
+        reference_distributions = league_references.reference_distributions
+
     consistency = get_consistency_score(ops_values)
-    scaled_ops = get_percentile_score(ops, league_references.reference_distributions["ops"])
-    scaled_discipline = get_percentile_score(discipline, league_references.reference_distributions["discipline"])
-    scaled_iso = get_percentile_score(iso, league_references.reference_distributions["iso"])
+    scaled_ops = get_percentile_score(ops, reference_distributions["ops"])
+    scaled_discipline = get_percentile_score(discipline, reference_distributions["discipline"])
+    scaled_iso = get_percentile_score(iso, reference_distributions["iso"])
     a_multiplier = get_age_multiplier(age)
     p_multiplier = get_position_multiplier(position)
     d_multiplier = get_defense_modifier(fielding_seasons)
 
-    base_score = (scaled_ops * 0.4) + (scaled_discipline * 0.25) + (scaled_iso * 0.2) +(consistency * 0.15)
+    base_score = (scaled_ops * 0.4) + (scaled_discipline * 0.25) + (scaled_iso * 0.2) + (consistency * 0.15)
     final_score = base_score * a_multiplier * p_multiplier * d_multiplier
     return final_score
 
