@@ -2,10 +2,22 @@ import httpx
 import asyncio
 TRAINING_SEASONS = [2018, 2019, 2021, 2022, 2023, 2024, 2025]
 
-async def fetch_all_hitters(season : int):
+async def fetch_all_hitters(season: int):
+    all_splits = []
+    offset = 0
+    limit = 1000
     async with httpx.AsyncClient() as client:
-        response = await  client.get("https://statsapi.mlb.com/api/v1/stats", params = {"stats" : "season", "group" : "hitting", "season" : season, "sportId" : "1", "playerPool" : "All", "limit" : "1000"})
-        return response.json()
+        while True:
+            response = await client.get("https://statsapi.mlb.com/api/v1/stats", params={"stats": "season", "group": "hitting", "season": season, "sportId": "1", "playerPool": "All", "limit": str(limit), "offset": str(offset)})
+            data = response.json()
+            splits = data["stats"][0]["splits"]
+            all_splits.extend(splits)
+            total = data["stats"][0]["totalSplits"]
+            offset += limit
+            if offset >= total:
+                break
+    data["stats"][0]["splits"] = all_splits
+    return data
     
 def filter_by_min_pa(raw_data: dict, min_pa: int = 275) -> list:
     players = raw_data["stats"][0]["splits"]
@@ -49,3 +61,39 @@ def build_training_pairs(all_data : dict) -> list:
         pairs.append(pair)
     return pairs
 
+async def fetch_all_fielders(season: int):
+    all_splits = []
+    offset = 0
+    limit = 1000
+    async with httpx.AsyncClient() as client:
+        while True:
+            response = await client.get("https://statsapi.mlb.com/api/v1/stats", params={"stats": "season", "group": "fielding", "season": season, "sportId": "1", "playerPool": "All", "limit": str(limit), "offset": str(offset)})
+            data = response.json()
+            splits = data["stats"][0]["splits"]
+            all_splits.extend(splits)
+            total = data["stats"][0]["totalSplits"]
+            offset += limit
+            if offset >= total:
+                break
+    data["stats"][0]["splits"] = all_splits
+    return data
+    
+def build_fielding_lookup(raw_data: dict) -> dict:
+    entries = raw_data["stats"][0]["splits"]
+    lookup = {}
+    for i in range(len(entries)):
+        entry = entries[i]
+        player_id = entry["player"]["id"]
+        season = entry["season"]
+        key = (player_id,season)
+        innings = float(entry["stat"]["innings"])
+        if key not in lookup:
+            lookup[key]=entry
+        else:
+            existing_innings = float(lookup[key]["stat"]["innings"])
+            if innings > existing_innings:
+                lookup[key] = entry
+    return lookup
+
+def add_labels(pairs:list , fielding_lookup: dict) -> list:
+    

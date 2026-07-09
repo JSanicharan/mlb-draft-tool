@@ -99,7 +99,7 @@ def get_defense_modifier(seasons: list) -> float:
     total = 0 
     for i in range(len(seasons)):
         season = seasons[i]
-        current_percent = float(season["stat"].get("fieldingPercentage", 1.0))
+        current_percent = float(season["stat"].get("fielding", 1.0))
         total += current_percent
     return total/len(seasons)
 
