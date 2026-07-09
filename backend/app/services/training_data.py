@@ -117,27 +117,52 @@ def add_labels(pairs:list , fielding_lookup: dict) -> list:
         pair["label"] = score
     return pairs
 
-def extract_features(season_entry: dict) -> dict:
+def extract_features(season_entry: dict, fielding_lookup: dict) -> dict:
     ops = float(season_entry["stat"]["ops"])
-    walks = float(season_entry ["stat"]["baseOnBalls"])
+    walks = float(season_entry["stat"]["baseOnBalls"])
     strikeouts = float(season_entry["stat"]["strikeOuts"])
     if strikeouts == 0:
-        discipline = 0    
+        discipline = 0
     else:
-        discipline = walks/strikeouts
+        discipline = walks / strikeouts
     slg = float(season_entry["stat"]["slg"])
     avg = float(season_entry["stat"]["avg"])
     iso = slg - avg
     age = float(season_entry["stat"]["age"])
     position = season_entry["position"]["abbreviation"]
     position_value = get_position_multiplier(position)
+
     ops_scaled = get_percentile_score(ops, league_references.reference_distributions["ops"])
     discipline_scaled = get_percentile_score(discipline, league_references.reference_distributions["discipline"])
     iso_scaled = get_percentile_score(iso, league_references.reference_distributions["iso"])
+
+    player_id = season_entry["player"]["id"]
+    season = season_entry["season"]
+    key = (player_id, season)
+    if key in fielding_lookup:
+        fielding_seasons = [fielding_lookup[key]]
+    else:
+        fielding_seasons = [{"stat": {}}]
+
+    input_draft_score = get_draft_score([season_entry], fielding_seasons, age, position)
+
     return {
-        "ops" : ops_scaled,
-        "discipline" : discipline_scaled,
-        "iso" : iso_scaled, 
-        "age" : age,
-        "position" : position_value,
-        }
+        "ops": ops_scaled,
+        "discipline": discipline_scaled,
+        "iso": iso_scaled,
+        "age": age,
+        "position": position_value,
+        "input_draft_score": input_draft_score,
+    }
+
+def build_dataset(labeled_pairs: list, fielding_lookup: dict) -> tuple:
+    x = []
+    y = []
+    for i in range(len(labeled_pairs)):
+        pair = labeled_pairs[i]
+        features = extract_features(pair["input"], fielding_lookup)
+
+        returned_list = [features["ops"], features["discipline"], features["iso"], features["age"], features["position"],features["input_draft_score"]]
+        x.append(returned_list)
+        y.append(pair["label"])
+    return x , y
