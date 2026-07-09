@@ -1,6 +1,7 @@
 import httpx
 import asyncio
-from app.services.scoring import get_draft_score
+from app.services.scoring import get_draft_score , get_position_multiplier, get_percentile_score
+from app.services import league_references
 TRAINING_SEASONS = [2018, 2019, 2021, 2022, 2023, 2024, 2025]
 
 async def fetch_all_hitters(season: int):
@@ -115,3 +116,28 @@ def add_labels(pairs:list , fielding_lookup: dict) -> list:
         score = get_draft_score(offense_seasons, fielding_seasons, age, position)
         pair["label"] = score
     return pairs
+
+def extract_features(season_entry: dict) -> dict:
+    ops = float(season_entry["stat"]["ops"])
+    walks = float(season_entry ["stat"]["baseOnBalls"])
+    strikeouts = float(season_entry["stat"]["strikeOuts"])
+    if strikeouts == 0:
+        discipline = 0    
+    else:
+        discipline = walks/strikeouts
+    slg = float(season_entry["stat"]["slg"])
+    avg = float(season_entry["stat"]["avg"])
+    iso = slg - avg
+    age = float(season_entry["stat"]["age"])
+    position = season_entry["position"]["abbreviation"]
+    position_value = get_position_multiplier(position)
+    ops_scaled = get_percentile_score(ops, league_references.reference_distributions["ops"])
+    discipline_scaled = get_percentile_score(discipline, league_references.reference_distributions["discipline"])
+    iso_scaled = get_percentile_score(iso, league_references.reference_distributions["iso"])
+    return {
+        "ops" : ops_scaled,
+        "discipline" : discipline_scaled,
+        "iso" : iso_scaled, 
+        "age" : age,
+        "position" : position_value,
+        }
