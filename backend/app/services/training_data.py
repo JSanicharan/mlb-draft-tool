@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+from app.services.scoring import get_draft_score
 TRAINING_SEASONS = [2018, 2019, 2021, 2022, 2023, 2024, 2025]
 
 async def fetch_all_hitters(season: int):
@@ -58,7 +59,7 @@ def build_training_pairs(all_data : dict) -> list:
             if next_year - current_year == 1 :
                 pair["input"] = seasons[i]
                 pair["label_source"] = seasons[i+1]
-        pairs.append(pair)
+                pairs.append(pair)
     return pairs
 
 async def fetch_all_fielders(season: int):
@@ -96,4 +97,21 @@ def build_fielding_lookup(raw_data: dict) -> dict:
     return lookup
 
 def add_labels(pairs:list , fielding_lookup: dict) -> list:
-    
+    for i in range(len(pairs)):
+        pair = pairs[i]
+        label_season = pair["label_source"]
+        player_id = label_season["player"]["id"]
+        season = label_season["season"]
+        age = int(label_season["stat"]["age"])
+        position = label_season["position"]["abbreviation"]
+        key = (player_id, season)
+
+        if key in fielding_lookup:
+            fielding_seasons = [fielding_lookup[key]]
+        else:
+            fielding_seasons = [{"stat" : {}}]
+        offense_seasons = [label_season]
+
+        score = get_draft_score(offense_seasons, fielding_seasons, age, position)
+        pair["label"] = score
+    return pairs
