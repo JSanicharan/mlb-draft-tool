@@ -9,7 +9,7 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     await league_references.refresh_reference_data()
-    
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

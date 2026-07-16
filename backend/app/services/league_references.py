@@ -1,10 +1,22 @@
 import httpx
 import asyncio
+
 reference_distributions = None
 
-async def fetch_qualified_hitters(season : int):
+MIN_PLATE_APPEARANCES = 400
+
+async def fetch_qualified_hitters(season: int):
     async with httpx.AsyncClient() as client:
-        response = await  client.get("https://statsapi.mlb.com/api/v1/stats", params = {"stats" : "season", "group" : "hitting", "season" : season, "sportId" : "1", "limit" : "200"})
+        response = await client.get(
+            "https://statsapi.mlb.com/api/v1/stats",
+            params={
+                "stats": "season",
+                "group": "hitting",
+                "season": season,
+                "sportId": "1",
+                "limit": "500",
+            },
+        )
         return response.json()
 
 def build_reference_distributions(raw_data: dict):
@@ -12,14 +24,26 @@ def build_reference_distributions(raw_data: dict):
     ops = []
     discipline = []
     iso = []
+
     for i in range(len(players)):
         player = players[i]
-        ops.append(float(player["stat"]["ops"]))
-        walk = float(player["stat"]["baseOnBalls"])
-        strikeout = float(player["stat"]["strikeOuts"])
-        discipline.append(walk/strikeout)
-        season_avg = float(player["stat"]["avg"])
-        season_slg = float(player["stat"]["slg"])
+        stat = player["stat"]
+
+        plate_appearances = float(stat.get("plateAppearances", 0))
+        if plate_appearances < MIN_PLATE_APPEARANCES:
+            continue
+
+        strikeout = float(stat["strikeOuts"])
+        if strikeout == 0:
+            continue
+
+        ops.append(float(stat["ops"]))
+
+        walk = float(stat["baseOnBalls"])
+        discipline.append(walk / strikeout)
+
+        season_avg = float(stat["avg"])
+        season_slg = float(stat["slg"])
         iso.append(season_slg - season_avg)
 
     return {
@@ -27,10 +51,12 @@ def build_reference_distributions(raw_data: dict):
         "discipline": discipline,
         "iso": iso,
     }
+
 async def refresh_reference_data():
     global reference_distributions
     data = await fetch_qualified_hitters(2025)
     reference_distributions = build_reference_distributions(data)
+    print("Qualified hitters in OPS distribution:", len(reference_distributions["ops"]))
 
 async def build_training_reference_distributions(seasons: list) -> dict:
     training_distributions = {}

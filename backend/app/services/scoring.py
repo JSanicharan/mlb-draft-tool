@@ -96,12 +96,21 @@ def get_position_multiplier(position: str) -> float:
     return multipliers.get(position, 1.00)
 
 def get_defense_modifier(seasons: list) -> float:
-    total = 0 
+    total = 0
+    count = 0
     for i in range(len(seasons)):
         season = seasons[i]
+        chances = float(season["stat"].get("chances", 0))
+        if chances == 0:
+            continue
         current_percent = float(season["stat"].get("fielding", 1.0))
         total += current_percent
-    return total/len(seasons)
+        count += 1
+
+    if count == 0:
+        return 1.0
+
+    return total / count
 
 def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, position: str, reference_distributions: dict = None) -> float:
     ops_values = []
