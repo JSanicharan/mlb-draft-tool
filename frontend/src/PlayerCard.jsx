@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './PlayerCard.css'
 
 function StatRow({ label, value, percentile }) {
@@ -24,8 +24,12 @@ function PlayerCard() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const hasFetched = useRef(false)
 
   useEffect(() => {
+    if (hasFetched.current) return
+    hasFetched.current = true
+
     async function fetchProfile() {
       const response = await fetch("http://127.0.0.1:8000/players/" + playerId + "/profile")
       if (!response.ok) {
