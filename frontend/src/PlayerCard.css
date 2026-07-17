@@ -191,3 +191,31 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+.team-toggle-button {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #16a34a;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.team-toggle-button:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.team-toggle-active {
+  background: #ffffff;
+  color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.team-toggle-active:hover {
+  background: #fef2f2;
+}

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
+import { useTeam } from './TeamContext'
 import './PlayerCard.css'
 
 function StatRow({ label, value, percentile }) {
@@ -25,6 +26,7 @@ function PlayerCard() {
   const [profile, setProfile] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const hasFetched = useRef(false)
+  const { addPlayer, removePlayer, isOnTeam } = useTeam()
 
   useEffect(() => {
     if (hasFetched.current) return
@@ -64,6 +66,24 @@ function PlayerCard() {
   }
 
   const { player, draft_score, ml_score, ai_summary, scoring_stats, baseline_stats } = profile;
+  const onTeam = isOnTeam(playerId);
+
+  function handleTeamToggle() {
+    if (onTeam) {
+      removePlayer(playerId);
+      return;
+    }
+    addPlayer(
+      {
+        playerId,
+        name: player.name,
+        position: player.position,
+        photoUrl: player.headshot_url,
+        team: player.team,
+      },
+      player.position
+    );
+  }
 
   return (
     <div className="player-page">
@@ -77,6 +97,12 @@ function PlayerCard() {
           <h2 className="player-name">{player.name}</h2>
           <p className="player-meta">{player.position} - {player.team}</p>
           <p className="player-meta-sub">Age {player.age} · Bats {player.bat_side.description} / Throws {player.throw_side.description}</p>
+          <button
+            className={`team-toggle-button ${onTeam ? 'team-toggle-active' : ''}`}
+            onClick={handleTeamToggle}
+          >
+            {onTeam ? 'Remove from team' : 'Add to team'}
+          </button>
         </div>
 
         <div className="player-scores">
