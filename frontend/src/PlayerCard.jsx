@@ -85,7 +85,7 @@ function PlayerCard() {
             <span className="score-value">{draft_score.toFixed(2)}</span>
           </div>
           <div className="score-card">
-            <span className="score-label">ML score</span>
+            <span className="score-label">Next season projection <span className="beta-tag">Beta</span></span>
             <span className="score-value">{ml_score ?? '—'}</span>
           </div>
         </div>

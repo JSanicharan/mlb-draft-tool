@@ -188,3 +188,45 @@ def get_stat_breakdown(offense_seasons: list, reference_distributions: dict = No
     ]
 
     return {"scoring_stats": scoring_stats, "baseline_stats": baseline_stats}
+
+def get_ml_features(offense_seasons: list, fielding_seasons: list, age: int, position: str, draft_score: float, reference_distributions: dict = None) -> list:
+    if reference_distributions is None:
+        reference_distributions = league_references.reference_distributions
+
+    recent = offense_seasons[-1]["stat"]
+
+    ops = get_calculated_ops(offense_seasons)
+    discipline = get_plate_discipline(offense_seasons)
+    iso = get_calculated_iso(offense_seasons)
+
+    home_runs = float(recent["homeRuns"])
+    stolen_bases = float(recent["stolenBases"])
+    walks = float(recent["baseOnBalls"])
+    strikeouts = float(recent["strikeOuts"])
+    plate_appearances = float(recent["plateAppearances"])
+
+    walk_rate = walks / plate_appearances
+    strikeout_rate = strikeouts / plate_appearances
+
+    age_multiplier = get_age_multiplier(age)
+    position_value = get_position_multiplier(position)
+
+    ops_scaled = get_percentile_score(ops, reference_distributions["ops"])
+    discipline_scaled = get_percentile_score(discipline, reference_distributions["discipline"])
+    iso_scaled = get_percentile_score(iso, reference_distributions["iso"])
+    home_runs_scaled = get_percentile_score(home_runs, reference_distributions["home_runs"])
+    stolen_bases_scaled = get_percentile_score(stolen_bases, reference_distributions["stolen_bases"])
+
+    return [
+        ops_scaled,
+        discipline_scaled,
+        iso_scaled,
+        age_multiplier,
+        position_value,
+        draft_score,
+        home_runs_scaled,
+        stolen_bases_scaled,
+        walk_rate,
+        strikeout_rate,
+        plate_appearances,
+    ]

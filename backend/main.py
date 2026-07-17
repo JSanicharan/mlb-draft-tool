@@ -3,10 +3,10 @@ load_dotenv()
 from app.services.ai_summary import generate_ai_summary
 from fastapi import FastAPI 
 from app.services.mlb_client import search_player, get_career_offense_stats, get_career_fielding_stats, get_player_bundle
-from app.services.scoring import get_draft_score, get_stat_breakdown
+from app.services.scoring import get_draft_score, get_stat_breakdown, get_ml_features
 from fastapi.middleware.cors import CORSMiddleware
 from app.services import league_references
-
+from app.services.ml_model import predict_ml_score
 
 app = FastAPI()
 
@@ -53,6 +53,9 @@ async def profile(player_id: int):
     stat_breakdown = get_stat_breakdown(bundle["offense_seasons"])
     headshot_url = (f"https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{player_id}/headshot/67/current")
 
+    ml_features = get_ml_features(bundle["offense_seasons"], bundle["fielding_seasons"], bundle["age"], bundle["position"], draft_score)
+    ml_score = predict_ml_score(ml_features)
+
     recent_season_stat = bundle["offense_seasons"][-1]["stat"] if bundle["offense_seasons"] else {}
     ai_summary = None #generate_ai_summary(
         #player_name=bundle["name"],
@@ -72,8 +75,8 @@ async def profile(player_id: int):
             "headshot_url": headshot_url,
         },
         "draft_score": draft_score,
-        "ml_score": None,
-        "ai_summary": None,
+        "ml_score": round(float(ml_score), 2),
+        "ai_summary": None, #ai_summary,
         "scoring_stats" : stat_breakdown["scoring_stats"],
         "baseline_stats" : stat_breakdown["baseline_stats"]
 

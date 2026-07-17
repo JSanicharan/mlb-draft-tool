@@ -1,6 +1,6 @@
 import httpx
 import asyncio
-from app.services.scoring import get_draft_score , get_position_multiplier, get_percentile_score
+from app.services.scoring import get_draft_score , get_position_multiplier, get_percentile_score, get_age_multiplier
 from app.services import league_references
 TRAINING_SEASONS = [2018, 2019, 2021, 2022, 2023, 2024, 2025]
 
@@ -122,22 +122,33 @@ def extract_features(season_entry: dict, fielding_lookup: dict, training_referen
     ops = float(season_entry["stat"]["ops"])
     walks = float(season_entry["stat"]["baseOnBalls"])
     strikeouts = float(season_entry["stat"]["strikeOuts"])
+    plate_appearances = float(season_entry["stat"]["plateAppearances"])
+    home_runs = float(season_entry["stat"]["homeRuns"])
+    stolen_bases = float(season_entry["stat"]["stolenBases"])
+
     if strikeouts == 0:
         discipline = 0
     else:
         discipline = walks / strikeouts
+
+    walk_rate = walks / plate_appearances
+    strikeout_rate = strikeouts / plate_appearances
+
     slg = float(season_entry["stat"]["slg"])
     avg = float(season_entry["stat"]["avg"])
     iso = slg - avg
     age = float(season_entry["stat"]["age"])
     position = season_entry["position"]["abbreviation"]
     position_value = get_position_multiplier(position)
+    age_multiplier = get_age_multiplier(age)
 
     ref_dist = training_reference_distributions[int(season_entry["season"])]
 
     ops_scaled = get_percentile_score(ops, ref_dist["ops"])
     discipline_scaled = get_percentile_score(discipline, ref_dist["discipline"])
     iso_scaled = get_percentile_score(iso, ref_dist["iso"])
+    home_runs_scaled = get_percentile_score(home_runs, ref_dist["home_runs"])
+    stolen_bases_scaled = get_percentile_score(stolen_bases, ref_dist["stolen_bases"])
 
     player_id = season_entry["player"]["id"]
     season = season_entry["season"]
@@ -153,19 +164,25 @@ def extract_features(season_entry: dict, fielding_lookup: dict, training_referen
         "ops": ops_scaled,
         "discipline": discipline_scaled,
         "iso": iso_scaled,
-        "age": age,
+        "age_multiplier": age_multiplier,
         "position": position_value,
         "input_draft_score": input_draft_score,
+        "home_runs": home_runs_scaled,
+        "stolen_bases": stolen_bases_scaled,
+        "walk_rate": walk_rate,
+        "strikeout_rate": strikeout_rate,
+        "plate_appearances": plate_appearances,
     }
-
 
 def build_dataset(labeled_pairs: list, fielding_lookup: dict, training_reference_distributions: dict) -> tuple:
     x = []
     y = []
+    player_ids = []
     for i in range(len(labeled_pairs)):
         pair = labeled_pairs[i]
         features = extract_features(pair["input"], fielding_lookup, training_reference_distributions)
-        returned_list = [features["ops"], features["discipline"], features["iso"], features["age"], features["position"], features["input_draft_score"]]
+        returned_list = [features["ops"], features["discipline"], features["iso"], features["age_multiplier"], features["position"], features["input_draft_score"],features["home_runs"],features["stolen_bases"],features["walk_rate"],features["strikeout_rate"],features["plate_appearances"],]
         x.append(returned_list)
         y.append(pair["label"])
-    return x, y
+        player_ids.append(pair["input"]["player"]["id"])
+    return x, y, player_ids
