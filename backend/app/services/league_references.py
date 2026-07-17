@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+from datetime import datetime
 
 reference_distributions = None
 
@@ -24,6 +25,12 @@ def build_reference_distributions(raw_data: dict):
     ops = []
     discipline = []
     iso = []
+    home_runs = []
+    runs = []
+    rbis = []
+    stolen_bases = []
+    avgs = []
+    hits = []
 
     for i in range(len(players)):
         player = players[i]
@@ -37,8 +44,6 @@ def build_reference_distributions(raw_data: dict):
         if strikeout == 0:
             continue
 
-        ops.append(float(stat["ops"]))
-
         walk = float(stat["baseOnBalls"])
         discipline.append(walk / strikeout)
 
@@ -46,17 +51,31 @@ def build_reference_distributions(raw_data: dict):
         season_slg = float(stat["slg"])
         iso.append(season_slg - season_avg)
 
+        ops.append(float(stat["ops"]))
+        home_runs.append(float(stat["homeRuns"]))
+        runs.append(float(stat["runs"]))
+        rbis.append(float(stat["rbi"]))
+        stolen_bases.append(float(stat["stolenBases"]))
+        avgs.append(float(stat["avg"]))
+        hits.append(float(stat["hits"]))
+
     return {
         "ops": ops,
         "discipline": discipline,
         "iso": iso,
+        "home_runs" : home_runs,
+        "runs" : runs,
+        "rbi" : rbis,
+        "stolen_bases" : stolen_bases,
+        "avg" : avgs,
+        "hits" : hits,
     }
 
 async def refresh_reference_data():
     global reference_distributions
-    data = await fetch_qualified_hitters(2025)
+    current_year = datetime.now().year
+    data = await fetch_qualified_hitters(current_year)
     reference_distributions = build_reference_distributions(data)
-    print("Qualified hitters in OPS distribution:", len(reference_distributions["ops"]))
 
 async def build_training_reference_distributions(seasons: list) -> dict:
     training_distributions = {}

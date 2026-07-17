@@ -136,6 +136,55 @@ def get_draft_score(offense_seasons: list, fielding_seasons: list, age: int, pos
     return final_score
 
 def get_percentile_score(value: float, distribution : list) -> float:
+
     result = percentileofscore(distribution, value)
     result = result / 100
     return result
+
+def get_stat_breakdown(offense_seasons: list, reference_distributions: dict = None) -> dict:
+    if reference_distributions is None:
+        reference_distributions = league_references.reference_distributions
+
+    if not offense_seasons:
+        return {"scoring_stats": [], "baseline_stats": []}
+    recent = offense_seasons[-1]["stat"]
+    home_runs = float(recent["homeRuns"])
+    runs = float(recent["runs"])
+    rbi = float(recent["rbi"])
+    avg = float(recent["avg"])
+    stolen_bases = float(recent["stolenBases"])
+    hit = float(recent["hits"])
+    ops = float(recent["ops"])
+    walk = float(recent["baseOnBalls"])
+    strikeout = float(recent["strikeOuts"])
+    discipline = walk/strikeout
+    slg = float(recent["slg"])
+    iso = slg - avg
+
+    home_runs_percent = round(100 * get_percentile_score(home_runs, reference_distributions["home_runs"]))
+    runs_percent = round(100 * get_percentile_score(runs, reference_distributions["runs"]))
+    rbi_percent = round(100 * get_percentile_score(rbi, reference_distributions["rbi"]))
+    stolen_bases_percent = round(100 * get_percentile_score(stolen_bases, reference_distributions["stolen_bases"]))
+    avg_percent = round(100 * get_percentile_score(avg, reference_distributions["avg"]))
+    hits_percent = round(100 * get_percentile_score(hit, reference_distributions["hits"]))
+
+    ops_percent = round(100 * get_percentile_score(ops, reference_distributions["ops"]))
+    iso_percent = round(100 * get_percentile_score(iso, reference_distributions["iso"]))
+    discipline_percent = round(100 * get_percentile_score(discipline, reference_distributions["discipline"]))
+
+    scoring_stats = [
+        {"label": "HR", "value": int(home_runs), "percentile": home_runs_percent},
+        {"label": "R", "value": int(runs), "percentile": runs_percent},
+        {"label": "RBI", "value": int(rbi), "percentile": rbi_percent},
+        {"label": "SB", "value": int(stolen_bases), "percentile": stolen_bases_percent},
+        {"label": "AVG", "value": round(avg, 3), "percentile": avg_percent},
+        {"label": "H", "value": int(hit), "percentile": hits_percent},
+    ]
+
+    baseline_stats = [
+        {"label": "OPS", "value": round(ops, 3), "percentile": ops_percent},
+        {"label": "ISO", "value": round(iso, 3), "percentile": iso_percent},
+        {"label": "Discipline", "value": round(discipline, 2), "percentile": discipline_percent},
+    ]
+
+    return {"scoring_stats": scoring_stats, "baseline_stats": baseline_stats}
