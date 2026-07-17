@@ -97,3 +97,54 @@
 .result-select:hover {
   opacity: 0.85;
 }
+
+.search-results {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.result-row:hover {
+  background: var(--card-surface);
+}
+
+.result-name {
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.result-select {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.result-select:hover {
+  opacity: 0.8;
+}

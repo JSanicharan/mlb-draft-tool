@@ -2,9 +2,9 @@ import httpx
 import asyncio
 from fastapi import HTTPException
 
-async def search_player(name:str):
+async def search_player(name: str):
     async with httpx.AsyncClient() as client:
-        response = await client.get("https://statsapi.mlb.com/api/v1/people/search", params ={"names" : name})
+        response = await client.get("https://statsapi.mlb.com/api/v1/people/search", params={"names": name, "active": "true"})
         return response.json()
     
 async def get_player_info(player_id:int) -> dict:

@@ -60,6 +60,10 @@ function App() {
               ))}
             </div>
           )}
+
+          {!loading && searchResults.length === 0 && name.trim() !== "" && (
+            <p className="search-status">No players found</p>
+          )}
         </div>
       } />
       <Route path="/players/:playerId" element={<PlayerCard />} />
