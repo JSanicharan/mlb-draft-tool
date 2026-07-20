@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeam } from './TeamContext';
 import './MyTeam.css';
+import { API_BASE_URL } from './config';
 
 const FIELD_POSITIONS = [
   { slot: 'C', top: '85%', left: '50%' },
@@ -209,8 +210,8 @@ export default function MyTeam() {
         allRosteredPlayers.map(async (player) => {
           const isPitcher = player.position === 'P';
           const endpoint = isPitcher
-            ? `http://127.0.0.1:8000/pitchers/${player.playerId}/profile`
-            : `http://127.0.0.1:8000/players/${player.playerId}/profile`;
+            ? `${API_BASE_URL}/pitchers/${player.playerId}/profile`
+            : `${API_BASE_URL}/players/${player.playerId}/profile`;
           try {
             const response = await fetch(endpoint);
             if (!response.ok) return [player.playerId, null];
@@ -267,7 +268,7 @@ export default function MyTeam() {
 
     async function fetchBooster() {
       const response = await fetch(
-        `http://127.0.0.1:8000/leaderboard?category=${boosterCategory}&limit=10`
+        `${API_BASE_URL}/leaderboard?category=${boosterCategory}&limit=10`
       );
       const result = await response.json();
       if (cancelled || !result.players) return;
@@ -294,7 +295,7 @@ export default function MyTeam() {
       const entries = await Promise.all(
         emptySlots.map(async ({ slot }) => {
           const response = await fetch(
-            `http://127.0.0.1:8000/recommendations/spot-filler?position=${slot}&exclude=${excludeParam}&limit=3`
+            `${API_BASE_URL}/recommendations/spot-filler?position=${slot}&exclude=${excludeParam}&limit=3`
           );
           const result = await response.json();
           return [slot, result.players || []];

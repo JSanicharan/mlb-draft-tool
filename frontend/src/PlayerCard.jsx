@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { useTeam } from './TeamContext'
 import './PlayerCard.css'
+import { API_BASE_URL } from './config';
 
 function StatRow({ label, value, percentile }) {
   const isBelowAverage = percentile < 50;
@@ -33,7 +34,7 @@ function PlayerCard() {
     hasFetched.current = true
 
     async function fetchProfile() {
-      const response = await fetch("http://127.0.0.1:8000/players/" + playerId + "/profile")
+      const response = await fetch(`${API_BASE_URL}/players/${playerId}/profile`)
       if (!response.ok) {
         setNotFound(true)
         return

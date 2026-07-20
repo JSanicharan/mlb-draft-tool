@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Leaderboard.css';
+import { API_BASE_URL } from './config';
 
 const HITTER_CATEGORIES = [
   { key: 'home_runs', label: 'HR' },
@@ -49,7 +50,7 @@ export default function Leaderboard() {
 
     async function fetchLeaderboard() {
       const response = await fetch(
-        `http://127.0.0.1:8000/leaderboard?category=${activeCategory}&limit=20`
+        `${API_BASE_URL}/leaderboard?category=${activeCategory}&limit=20`
       );
       const result = await response.json();
       if (!cancelled) {

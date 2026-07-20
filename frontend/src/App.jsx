@@ -6,6 +6,7 @@ import Header from './Header'
 import MyTeam from './MyTeam'
 import Leaderboard from './Leaderboard'
 import PitcherCard from './PitcherCard'
+import { API_BASE_URL } from './config';
 
 function App() {
   const [name, setName] = useState("");
@@ -16,7 +17,7 @@ function App() {
 
   async function handleSearch() {
     setLoading(true);
-    const response = await fetch("http://127.0.0.1:8000/players/search?name=" + name);
+    const response = await fetch(`${API_BASE_URL}/players/search?name=` + name);
     const data = await response.json();
     const people = data.people;
     setSearchResults(people);
