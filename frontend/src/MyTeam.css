@@ -180,3 +180,146 @@
   color: #111827;
   margin-top: 2px;
 }
+
+.recommendations-section {
+  text-align: left;
+  margin-top: 32px;
+}
+
+.spot-filler-row {
+  margin-bottom: 16px;
+}
+
+.spot-filler-slot-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3b6d11;
+  margin-bottom: 6px;
+}
+
+.spot-filler-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recommendation-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 4px 12px 4px 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.recommendation-chip:hover {
+  background: #eaf3de;
+}
+
+.recommendation-chip-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  text-align: left;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  color: #9ca3af;
+  padding: 0;
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  color: #161718;
+  background: #f3f4f6;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.modal-meta {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.modal-score {
+  background: #eaf3de;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-status {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.modal-view-full {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #97c459;
+  background: #ffffff;
+  color: #3b6d11;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modal-view-full:hover {
+  background: #eaf3de;
+}

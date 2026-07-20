@@ -205,11 +205,13 @@ def build_leaderboard(raw_data: dict, min_pa: int) -> list:
 
         player_info = player_split.get("player", {})
         team_info = player_split.get("team", {})
+        position_info = player_split.get("position", {})
 
         leaderboard.append({
             "player_id": player_info.get("id"),
             "name": player_info.get("fullName"),
             "team": team_info.get("name"),
+            "position": position_info.get("abbreviation", ""),
             "home_runs": float(stat.get("homeRuns", 0)),
             "runs": float(stat.get("runs", 0)),
             "rbi": float(stat.get("rbi", 0)),
@@ -344,6 +346,7 @@ async def refresh_pitcher_reference_data():
     pitcher_leaderboard_data = build_pitcher_leaderboard(data, min_ip)
 
 def build_pitcher_leaderboard(raw_data: dict, min_ip: int) -> list:
+    fip_const = fip_constant if fip_constant is not None else 3.10
     players = raw_data["stats"][0]["splits"]
     leaderboard = []
 
@@ -355,6 +358,12 @@ def build_pitcher_leaderboard(raw_data: dict, min_ip: int) -> list:
         if innings_pitched < min_ip:
             continue
 
+        home_runs = float(stat.get("homeRuns", 0))
+        walks = float(stat.get("baseOnBalls", 0))
+        hit_by_pitch = float(stat.get("hitByPitch", 0))
+        strikeouts = float(stat.get("strikeOuts", 0))
+        fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_const
+
         player_info = player_split.get("player", {})
         team_info = player_split.get("team", {})
 
@@ -362,11 +371,13 @@ def build_pitcher_leaderboard(raw_data: dict, min_ip: int) -> list:
             "player_id": player_info.get("id"),
             "name": player_info.get("fullName"),
             "team": team_info.get("name"),
+            "position": "P",
             "wins": float(stat.get("wins", 0)),
             "saves": float(stat.get("saves", 0)),
-            "strikeouts": float(stat.get("strikeOuts", 0)),
+            "strikeouts": strikeouts,
             "era": float(stat.get("era", 0)),
             "whip": float(stat.get("whip", 0)),
+            "fip": fip,
         })
 
     return leaderboard

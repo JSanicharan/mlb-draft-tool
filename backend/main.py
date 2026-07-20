@@ -147,3 +147,48 @@ async def pitcher_profile(player_id: int):
         "scoring_stats": stat_breakdown["scoring_stats"],
         "baseline_stats": stat_breakdown["baseline_stats"],
     }
+
+@app.get("/recommendations/spot-filler")
+def spot_filler_recommendation(position: str, exclude: str = "", limit: int = 5):
+    excluded_ids = set()
+    if exclude:
+        excluded_ids = set(int(x) for x in exclude.split(",") if x)
+
+    is_pitcher_position = position == "P"
+
+    if is_pitcher_position:
+        if league_references.pitcher_leaderboard_data is None:
+            return {"error": "Pitcher data not loaded yet"}
+        pool = league_references.pitcher_leaderboard_data
+        rank_key = "fip"
+        reverse_sort = False
+    else:
+        if league_references.leaderboard_data is None:
+            return {"error": "Hitter data not loaded yet"}
+        pool = league_references.leaderboard_data
+        rank_key = "ops"
+        reverse_sort = True
+
+    candidates = [
+        player for player in pool
+        if player["position"] == position and player["player_id"] not in excluded_ids
+    ]
+    sorted_candidates = sorted(candidates, key=lambda p: p[rank_key], reverse=reverse_sort)
+    top_candidates = sorted_candidates[:limit]
+
+    results = []
+    for player in top_candidates:
+        headshot_url = (
+            f"https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{player['player_id']}/headshot/67/current"
+        )
+        results.append({
+            "player_id": player["player_id"],
+            "name": player["name"],
+            "team": player["team"],
+            "position": player["position"],
+            "headshot_url": headshot_url,
+            "rank_stat": rank_key,
+            "rank_value": player[rank_key],
+        })
+
+    return {"position": position, "players": results}
