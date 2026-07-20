@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 from datetime import datetime
+import json
 
 reference_distributions = None
 pitcher_reference_distributions = None
@@ -45,7 +46,7 @@ async def fetch_qualified_hitters(season: int):
                 "limit": "500",
             },
         )
-        return response.json()
+        return json.loads(response.content.decode("utf-8"))
 
 def build_reference_distributions(raw_data: dict):
     players = raw_data["stats"][0]["splits"]
@@ -251,7 +252,7 @@ async def fetch_qualified_pitchers(season: int):
                 "limit": "500",
             },
         )
-        return response.json()
+        return json.loads(response.content.decode("utf-8"))
 
 def compute_fip_constant(raw_data: dict) -> float:
     players = raw_data["stats"][0]["splits"]
