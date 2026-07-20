@@ -244,19 +244,24 @@ def parse_innings_pitched(innings_pitched) -> float:
 async def fetch_qualified_pitchers(season: int):
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            "https://statsapi.mlb.com/api/v1/stats",
+            "https://bdfed.stitch.mlbinfra.com/bdfed/stats/player",
             params={
-                "stats": "season",
-                "group": "pitching",
+                "env": "prod",
                 "season": season,
                 "sportId": "1",
-                "limit": "500",
+                "stats": "season",
+                "group": "pitching",
+                "gameType": "R",
+                "limit": "1000",
+                "offset": "0",
+                "sortStat": "inningsPitched",
+                "order": "desc",
             },
         )
         return json.loads(response.content.decode("utf-8"))
 
 def compute_fip_constant(raw_data: dict) -> float:
-    players = raw_data["stats"][0]["splits"]
+    players = raw_data["stats"]
     total_earned_runs = 0
     total_hr = 0
     total_bb = 0
@@ -265,7 +270,7 @@ def compute_fip_constant(raw_data: dict) -> float:
     total_ip = 0
 
     for i in range(len(players)):
-        stat = players[i]["stat"]
+        stat = players[i]
         ip = parse_innings_pitched(stat.get("inningsPitched", "0.0"))
         if ip == 0:
             continue
@@ -297,7 +302,7 @@ def build_pitcher_reference_distributions(raw_data: dict) -> dict:
     fip_constant = compute_fip_constant(raw_data)
     min_ip = get_current_season_min_innings_pitched()
 
-    players = raw_data["stats"][0]["splits"]
+    players = raw_data["stats"]
     fip_list = []
     whip_list = []
     k9_list = []
@@ -308,7 +313,7 @@ def build_pitcher_reference_distributions(raw_data: dict) -> dict:
     strikeouts_list = []
 
     for i in range(len(players)):
-        stat = players[i]["stat"]
+        stat = players[i]
         innings_pitched = parse_innings_pitched(stat.get("inningsPitched", "0.0"))
         if innings_pitched < min_ip:
             continue
@@ -320,7 +325,7 @@ def build_pitcher_reference_distributions(raw_data: dict) -> dict:
 
         fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_constant
         fip_list.append(fip)
-        whip_list.append(float(stat["whip"]))
+        whip_list.append(float(stat.get("whip", 0)))
 
         if "strikeoutsPer9Inn" in stat:
             k9_list.append(float(stat["strikeoutsPer9Inn"]))
@@ -355,12 +360,11 @@ async def refresh_pitcher_reference_data():
 
 def build_pitcher_leaderboard(raw_data: dict, min_ip: int, min_gf: int) -> list:
     fip_const = fip_constant if fip_constant is not None else 3.10
-    players = raw_data["stats"][0]["splits"]
+    players = raw_data["stats"]
     leaderboard = []
 
     for i in range(len(players)):
-        player_split = players[i]
-        stat = player_split["stat"]
+        stat = players[i]
 
         innings_pitched = parse_innings_pitched(stat.get("inningsPitched", "0.0"))
         games_finished = float(stat.get("gamesFinished", 0))
@@ -374,13 +378,10 @@ def build_pitcher_leaderboard(raw_data: dict, min_ip: int, min_gf: int) -> list:
         strikeouts = float(stat.get("strikeOuts", 0))
         fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_const if innings_pitched > 0 else fip_const
 
-        player_info = player_split.get("player", {})
-        team_info = player_split.get("team", {})
-
         leaderboard.append({
-            "player_id": player_info.get("id"),
-            "name": player_info.get("fullName"),
-            "team": team_info.get("name"),
+            "player_id": stat.get("playerId"),
+            "name": stat.get("playerFullName"),
+            "team": stat.get("teamName"),
             "position": "P",
             "wins": float(stat.get("wins", 0)),
             "saves": float(stat.get("saves", 0)),
