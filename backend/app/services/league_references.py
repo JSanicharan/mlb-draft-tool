@@ -11,6 +11,7 @@ MIN_PLATE_APPEARANCES = 400
 FULL_SEASON_QUALIFIER = 502
 SEASON_START_MONTH = 3
 SEASON_END_MONTH = 10
+GAMES_FINISHED_QUALIFIER = 45
 leaderboard_data = None
 CATEGORY_LABELS = {
     "home_runs": "HR",
@@ -286,6 +287,11 @@ def get_current_season_min_innings_pitched() -> int:
     scaled = int(FULL_SEASON_INNINGS_QUALIFIER * progress_fraction)
     return max(scaled, 20)
 
+def get_current_season_min_games_finished() -> int:
+    progress_fraction = get_current_season_min_plate_appearances() / FULL_SEASON_QUALIFIER
+    scaled = int(GAMES_FINISHED_QUALIFIER * progress_fraction)
+    return max(scaled, 5)
+
 def build_pitcher_reference_distributions(raw_data: dict) -> dict:
     global fip_constant
     fip_constant = compute_fip_constant(raw_data)
@@ -344,9 +350,10 @@ async def refresh_pitcher_reference_data():
     data = await fetch_qualified_pitchers(current_year)
     pitcher_reference_distributions = build_pitcher_reference_distributions(data)
     min_ip = get_current_season_min_innings_pitched()
-    pitcher_leaderboard_data = build_pitcher_leaderboard(data, min_ip)
+    min_gf = get_current_season_min_games_finished()
+    pitcher_leaderboard_data = build_pitcher_leaderboard(data, min_ip, min_gf)
 
-def build_pitcher_leaderboard(raw_data: dict, min_ip: int) -> list:
+def build_pitcher_leaderboard(raw_data: dict, min_ip: int, min_gf: int) -> list:
     fip_const = fip_constant if fip_constant is not None else 3.10
     players = raw_data["stats"][0]["splits"]
     leaderboard = []
@@ -356,14 +363,16 @@ def build_pitcher_leaderboard(raw_data: dict, min_ip: int) -> list:
         stat = player_split["stat"]
 
         innings_pitched = parse_innings_pitched(stat.get("inningsPitched", "0.0"))
-        if innings_pitched < min_ip:
+        games_finished = float(stat.get("gamesFinished", 0))
+
+        if innings_pitched < min_ip and games_finished < min_gf:
             continue
 
         home_runs = float(stat.get("homeRuns", 0))
         walks = float(stat.get("baseOnBalls", 0))
         hit_by_pitch = float(stat.get("hitByPitch", 0))
         strikeouts = float(stat.get("strikeOuts", 0))
-        fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_const
+        fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_const if innings_pitched > 0 else fip_const
 
         player_info = player_split.get("player", {})
         team_info = player_split.get("team", {})

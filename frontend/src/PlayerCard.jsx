@@ -45,10 +45,18 @@ function PlayerCard() {
     fetchProfile()
   }, [playerId])
 
+  function handleBack() {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1)
+    } else {
+      navigate("/")
+    }
+  }
+
   if (notFound) {
     return (
       <div className="player-page">
-        <button className="back-button" onClick={() => navigate("/")}>
+        <button className="back-button" onClick={handleBack}>
           <i className="ti ti-arrow-left"></i> Back
         </button>
         <div className="player-status">Player not found</div>
@@ -58,7 +66,7 @@ function PlayerCard() {
   if (!profile) {
     return (
       <div className="player-page">
-        <button className="back-button" onClick={() => navigate("/")}>
+        <button className="back-button" onClick={handleBack}>
           <i className="ti ti-arrow-left"></i> Back
         </button>
         <div className="player-status">Loading...</div>
@@ -88,7 +96,7 @@ function PlayerCard() {
 
   return (
     <div className="player-page">
-      <button className="back-button" onClick={() => navigate("/")}>
+      <button className="back-button" onClick={handleBack}>
         <i className="ti ti-arrow-left"></i> Back
       </button>
 
