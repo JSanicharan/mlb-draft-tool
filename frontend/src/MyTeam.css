@@ -181,9 +181,22 @@
   margin-top: 2px;
 }
 
+.recs-and-stats-row {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  margin-top: 32px;
+}
+
+.recs-column {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
 .recommendations-section {
   text-align: left;
-  margin-top: 32px;
 }
 
 .spot-filler-row {
@@ -226,6 +239,36 @@
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.team-stats-panel {
+  flex: 1;
+  min-width: 180px;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+}
+
+.team-stats-group {
+  margin-top: 12px;
+}
+
+.team-stats-group-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #3b6d11;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.team-stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-backdrop {
@@ -271,7 +314,7 @@
 }
 
 .modal-close:hover {
-  color: #161718;
+  color: #6b7280;
   background: #f3f4f6;
 }
 

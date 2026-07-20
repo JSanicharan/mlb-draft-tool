@@ -28,6 +28,46 @@ const CATEGORY_DISPLAY_LABELS = {
   wins: 'W', saves: 'SV', strikeouts: 'K', era: 'ERA', whip: 'WHIP',
 };
 
+const PITCHER_CATEGORY_KEYS = ['wins', 'saves', 'strikeouts', 'era', 'whip'];
+const RATE_LABELS = new Set(['AVG', 'OPS', 'ISO', 'Discipline', 'ERA', 'WHIP', 'FIP']);
+const PITCHER_ONLY_LABELS = new Set(['W', 'SV', 'K', 'ERA', 'WHIP', 'FIP']);
+
+function computeTeamStats(profiles) {
+  const totals = {};
+
+  for (const profile of Object.values(profiles)) {
+    if (!profile) continue;
+    const allStats = [...(profile.scoring_stats || []), ...(profile.baseline_stats || [])];
+    for (const stat of allStats) {
+      if (!totals[stat.label]) totals[stat.label] = { sum: 0, count: 0 };
+      totals[stat.label].sum += stat.value;
+      totals[stat.label].count += 1;
+    }
+  }
+
+  const hitting = [];
+  const pitching = [];
+
+  for (const [label, { sum, count }] of Object.entries(totals)) {
+    const isRate = RATE_LABELS.has(label);
+    let value;
+    if (isRate) {
+      const decimals = (label === 'AVG' || label === 'OPS' || label === 'ISO') ? 3 : 2;
+      value = (sum / count).toFixed(decimals);
+    } else {
+      value = Math.round(sum);
+    }
+    const entry = { label, value };
+    if (PITCHER_ONLY_LABELS.has(label)) {
+      pitching.push(entry);
+    } else {
+      hitting.push(entry);
+    }
+  }
+
+  return { hitting, pitching };
+}
+
 function PlayerAvatar({ player }) {
   if (player?.photoUrl) {
     return (
@@ -85,7 +125,7 @@ function PlayerModal({ player, profile, loading, onClose, onViewFullPage }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Close">
-        ×
+          ×
         </button>
 
         <div className="modal-header">
@@ -153,6 +193,7 @@ export default function MyTeam() {
   ].filter(Boolean);
 
   const rosterIds = allRosteredPlayers.map((p) => p.playerId);
+  const teamStats = computeTeamStats(profiles);
 
   useEffect(() => {
     if (allRosteredPlayers.length === 0) {
@@ -324,57 +365,96 @@ export default function MyTeam() {
         )}
       </div>
 
-      <div className="recommendations-section">
-        <span className="bench-label">Spot fillers</span>
-        {profilesLoading ? (
-          <p className="leaderboard-status">Loading team data...</p>
-        ) : Object.keys(spotFillers).length === 0 ? (
-          <p className="bench-empty">Every position is filled.</p>
-        ) : (
-          Object.entries(spotFillers).map(([slot, players]) => (
-            players.length > 0 && (
-              <div key={slot} className="spot-filler-row">
-                <span className="spot-filler-slot-label">{slot}</span>
-                <div className="spot-filler-players">
-                  {players.map((p) => (
-                    <div
-                      key={p.player_id}
-                      className="recommendation-chip"
-                      onClick={() => navigate((p.position === 'P' ? '/pitchers/' : '/players/') + p.player_id)}
-                    >
-                      <img className="recommendation-chip-img" src={p.headshot_url} alt={p.name} onError={(e) => { e.target.style.visibility = 'hidden'; }} />
-                      <span>{p.name}</span>
+      <div className="recs-and-stats-row">
+        <div className="recs-column">
+          <div className="recommendations-section">
+            <span className="bench-label">Spot fillers</span>
+            {profilesLoading ? (
+              <p className="leaderboard-status">Loading team data...</p>
+            ) : Object.keys(spotFillers).length === 0 ? (
+              <p className="bench-empty">Every position is filled.</p>
+            ) : (
+              Object.entries(spotFillers).map(([slot, players]) => (
+                players.length > 0 && (
+                  <div key={slot} className="spot-filler-row">
+                    <span className="spot-filler-slot-label">{slot}</span>
+                    <div className="spot-filler-players">
+                      {players.map((p) => (
+                        <div
+                          key={p.player_id}
+                          className="recommendation-chip"
+                          onClick={() => navigate((p.position === 'P' ? '/pitchers/' : '/players/') + p.player_id)}
+                        >
+                          <img className="recommendation-chip-img" src={p.headshot_url} alt={p.name} onError={(e) => { e.target.style.visibility = 'hidden'; }} />
+                          <span>{p.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ))
+            )}
+          </div>
+
+          <div className="recommendations-section">
+            <span className="bench-label">
+              Stat booster{boosterCategory ? ` — your team is weak in ${CATEGORY_DISPLAY_LABELS[boosterCategory]}` : ''}
+            </span>
+            {profilesLoading ? (
+              <p className="leaderboard-status">Loading team data...</p>
+            ) : boosterPlayers.length === 0 ? (
+              <p className="bench-empty">No recommendations available.</p>
+            ) : (
+              <div className="spot-filler-players">
+                {boosterPlayers.map((p) => (
+                  <div
+                    key={p.player_id}
+                    className="recommendation-chip"
+                    onClick={() => navigate((PITCHER_CATEGORY_KEYS.includes(boosterCategory) ? '/pitchers/' : '/players/') + p.player_id)}
+                  >
+                    <img className="recommendation-chip-img" src={p.headshot_url} alt={p.name} onError={(e) => { e.target.style.visibility = 'hidden'; }} />
+                    <span>{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="team-stats-panel">
+          <span className="bench-label">Team stats</span>
+          {profilesLoading ? (
+            <p className="leaderboard-status">Loading...</p>
+          ) : (
+            <>
+              {teamStats.hitting.length > 0 && (
+                <div className="team-stats-group">
+                  <span className="team-stats-group-label">Hitting</span>
+                  {teamStats.hitting.map((stat) => (
+                    <div key={stat.label} className="team-stat-row">
+                      <span>{stat.label}</span>
+                      <span>{stat.value}</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )
-          ))
-        )}
-      </div>
-
-      <div className="recommendations-section">
-        <span className="bench-label">
-          Stat booster{boosterCategory ? ` — your team is weak in ${CATEGORY_DISPLAY_LABELS[boosterCategory]}` : ''}
-        </span>
-        {profilesLoading ? (
-          <p className="leaderboard-status">Loading team data...</p>
-        ) : boosterPlayers.length === 0 ? (
-          <p className="bench-empty">No recommendations available.</p>
-        ) : (
-          <div className="spot-filler-players">
-            {boosterPlayers.map((p) => (
-              <div
-                key={p.player_id}
-                className="recommendation-chip"
-                onClick={() => navigate((CATEGORY_KEY_MAP[CATEGORY_DISPLAY_LABELS[boosterCategory]] === 'wins' ? '/pitchers/' : '/players/') + p.player_id)}
-              >
-                <img className="recommendation-chip-img" src={p.headshot_url} alt={p.name} onError={(e) => { e.target.style.visibility = 'hidden'; }} />
-                <span>{p.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+              {teamStats.pitching.length > 0 && (
+                <div className="team-stats-group">
+                  <span className="team-stats-group-label">Pitching</span>
+                  {teamStats.pitching.map((stat) => (
+                    <div key={stat.label} className="team-stat-row">
+                      <span>{stat.label}</span>
+                      <span>{stat.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {teamStats.hitting.length === 0 && teamStats.pitching.length === 0 && (
+                <p className="bench-empty">No stats yet.</p>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {modalPlayer && (
