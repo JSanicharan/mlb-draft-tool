@@ -17,7 +17,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["https://mlb-draft-tool.vercel.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
