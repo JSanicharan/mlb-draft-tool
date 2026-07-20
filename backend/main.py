@@ -17,7 +17,7 @@ async def startup_event():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mlb-draft-tool.vercel.app"],
+    allow_origins=["https://mlb-draft-tool.vercel.app", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -193,3 +193,56 @@ def spot_filler_recommendation(position: str, exclude: str = "", limit: int = 5)
         })
 
     return {"position": position, "players": results}
+
+@app.get("/players/browse")
+def browse_players(position: str = "ALL", filters: str = "", limit: int = 100):
+    is_pitcher_view = position == "P"
+
+    if is_pitcher_view:
+        if league_references.pitcher_leaderboard_data is None:
+            return {"error": "Pitcher data not loaded yet"}
+        pool = league_references.pitcher_leaderboard_data
+    else:
+        if league_references.leaderboard_data is None:
+            return {"error": "Leaderboard data not loaded yet"}
+        pool = league_references.leaderboard_data
+
+    candidates = pool
+    if position != "ALL":
+        candidates = [p for p in candidates if p["position"] == position]
+
+    parsed_filters = []
+    if filters:
+        for chunk in filters.split(","):
+            if ":" not in chunk:
+                continue
+            stat, min_value = chunk.split(":", 1)
+            try:
+                parsed_filters.append((stat, float(min_value)))
+            except ValueError:
+                continue
+
+    for stat, threshold in parsed_filters:
+        if stat in league_references.PITCHER_LOWER_IS_BETTER:
+            candidates = [p for p in candidates if stat in p and p[stat] <= threshold]
+        else:
+            candidates = [p for p in candidates if stat in p and p[stat] >= threshold]
+
+    default_sort_key = "fip" if is_pitcher_view else "ops"
+    reverse_sort = default_sort_key not in league_references.PITCHER_LOWER_IS_BETTER
+    sorted_candidates = sorted(candidates, key=lambda p: p.get(default_sort_key, 0), reverse=reverse_sort)
+    top_candidates = sorted_candidates[:limit]
+
+    results = []
+    for player in top_candidates:
+        headshot_url = f"https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{player['player_id']}/headshot/67/current"
+        results.append({
+            "player_id": player["player_id"],
+            "name": player["name"],
+            "team": player["team"],
+            "position": player["position"],
+            "headshot_url": headshot_url,
+            "stats": {k: v for k, v in player.items() if k not in ("player_id", "name", "team", "position")},
+        })
+
+    return {"position": position, "count": len(results), "players": results}
