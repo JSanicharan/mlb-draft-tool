@@ -2,8 +2,8 @@ from dotenv import load_dotenv
 load_dotenv()
 from app.services.ai_summary import generate_ai_summary
 from fastapi import FastAPI 
-from app.services.mlb_client import search_player, get_career_offense_stats, get_career_fielding_stats, get_player_bundle
-from app.services.scoring import get_draft_score, get_stat_breakdown, get_ml_features
+from app.services.mlb_client import search_player, get_career_offense_stats, get_career_fielding_stats, get_player_bundle, get_pitcher_bundle
+from app.services.scoring import get_draft_score, get_stat_breakdown, get_ml_features, get_pitcher_draft_score, get_pitcher_stat_breakdown
 from fastapi.middleware.cors import CORSMiddleware
 from app.services import league_references
 from app.services.ml_model import predict_ml_score
@@ -13,6 +13,7 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     await league_references.refresh_reference_data()
+    await league_references.refresh_pitcher_reference_data()
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,4 +81,69 @@ async def profile(player_id: int):
         "scoring_stats" : stat_breakdown["scoring_stats"],
         "baseline_stats" : stat_breakdown["baseline_stats"]
 
+    }
+
+@app.get("/leaderboard")
+def leaderboard(category: str, limit: int = 20):
+    is_pitcher_category = category in league_references.PITCHER_CATEGORY_LABELS
+
+    if is_pitcher_category:
+        if league_references.pitcher_leaderboard_data is None:
+            return {"error": "Pitcher leaderboard data not loaded yet"}
+        source_data = league_references.pitcher_leaderboard_data
+        label = league_references.PITCHER_CATEGORY_LABELS[category]
+        reverse_sort = category not in league_references.PITCHER_LOWER_IS_BETTER
+    else:
+        if league_references.leaderboard_data is None:
+            return {"error": "Leaderboard data not loaded yet"}
+        valid_categories = list(league_references.CATEGORY_LABELS.keys())
+        if category not in valid_categories:
+            return {"error": f"Invalid category. Must be one of: {valid_categories + list(league_references.PITCHER_CATEGORY_LABELS.keys())}"}
+        source_data = league_references.leaderboard_data
+        label = league_references.CATEGORY_LABELS[category]
+        reverse_sort = True
+
+    sorted_players = sorted(source_data, key=lambda p: p[category], reverse=reverse_sort)
+    top_players = sorted_players[:limit]
+
+    results = []
+    for player in top_players:
+        headshot_url = (
+            f"https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{player['player_id']}/headshot/67/current"
+        )
+        results.append({
+            "player_id": player["player_id"],
+            "name": player["name"],
+            "team": player["team"],
+            "headshot_url": headshot_url,
+            "value": player[category],
+        })
+
+    return {
+        "category": category,
+        "label": label,
+        "players": results,
+    }
+
+@app.get("/pitchers/{player_id}/profile")
+async def pitcher_profile(player_id: int):
+    bundle = await get_pitcher_bundle(player_id)
+    fip_constant = league_references.fip_constant
+    draft_score = get_pitcher_draft_score(bundle["pitching_seasons"], bundle["age"], fip_constant)
+    stat_breakdown = get_pitcher_stat_breakdown(bundle["pitching_seasons"], fip_constant)
+
+    headshot_url = (f"https://img.mlbstatic.com/mlb-photos/image/upload/w_180,q_auto:best/v1/people/{player_id}/headshot/67/current")
+
+    return {
+        "player": {
+            "name": bundle["name"],
+            "team": bundle["team"],
+            "position": bundle["position"],
+            "age": bundle["age"],
+            "throw_side": bundle["throw_side"],
+            "headshot_url": headshot_url,
+        },
+        "draft_score": draft_score,
+        "scoring_stats": stat_breakdown["scoring_stats"],
+        "baseline_stats": stat_breakdown["baseline_stats"],
     }

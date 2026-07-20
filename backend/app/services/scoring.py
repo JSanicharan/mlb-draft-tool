@@ -230,3 +230,152 @@ def get_ml_features(offense_seasons: list, fielding_seasons: list, age: int, pos
         strikeout_rate,
         plate_appearances,
     ]
+
+def parse_innings_pitched(innings_pitched) -> float:
+    ip_str = str(innings_pitched)
+    if "." in ip_str:
+        whole, fraction = ip_str.split(".")
+        whole = float(whole)
+        if fraction == "1":
+            partial = 1 / 3
+        elif fraction == "2":
+            partial = 2 / 3
+        else:
+            partial = 0
+        return whole + partial
+    return float(ip_str)
+
+def get_calculated_fip(seasons: list, fip_constant: float) -> float:
+    decay = 0.7
+    weighted_sum = 0
+    total_weight = 0
+
+    seasons_reversed_list = list(reversed(seasons))
+    for i in range(len(seasons_reversed_list)):
+        season = seasons_reversed_list[i]
+        stat = season["stat"]
+        home_runs = float(stat["homeRuns"])
+        walks = float(stat["baseOnBalls"])
+        hit_by_pitch = float(stat.get("hitByPitch", 0))
+        strikeouts = float(stat["strikeOuts"])
+        innings_pitched = parse_innings_pitched(stat["inningsPitched"])
+
+        fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_constant
+        weight = decay ** i
+        weighted_sum += fip * weight
+        total_weight += weight
+
+    return weighted_sum / total_weight
+
+def get_calculated_whip(seasons: list) -> float:
+    decay = 0.7
+    weighted_sum = 0
+    total_weight = 0
+
+    seasons_reversed_list = list(reversed(seasons))
+    for i in range(len(seasons_reversed_list)):
+        season = seasons_reversed_list[i]
+        whip = float(season["stat"]["whip"])
+        weight = decay ** i
+        weighted_sum += whip * weight
+        total_weight += weight
+
+    return weighted_sum / total_weight
+
+def get_calculated_k9(seasons: list) -> float:
+    decay = 0.7
+    weighted_sum = 0
+    total_weight = 0
+
+    seasons_reversed_list = list(reversed(seasons))
+    for i in range(len(seasons_reversed_list)):
+        season = seasons_reversed_list[i]
+        stat = season["stat"]
+        if "strikeoutsPer9Inn" in stat:
+            k9 = float(stat["strikeoutsPer9Inn"])
+        else:
+            strikeouts = float(stat["strikeOuts"])
+            innings_pitched = parse_innings_pitched(stat["inningsPitched"])
+            k9 = (strikeouts / innings_pitched) * 9
+        weight = decay ** i
+        weighted_sum += k9 * weight
+        total_weight += weight
+
+    return weighted_sum / total_weight
+
+def get_calculated_durability(seasons: list) -> float:
+    decay = 0.7
+    weighted_sum = 0
+    total_weight = 0
+
+    seasons_reversed_list = list(reversed(seasons))
+    for i in range(len(seasons_reversed_list)):
+        season = seasons_reversed_list[i]
+        innings_pitched = parse_innings_pitched(season["stat"]["inningsPitched"])
+        weight = decay ** i
+        weighted_sum += innings_pitched * weight
+        total_weight += weight
+
+    return weighted_sum / total_weight
+
+def get_pitcher_draft_score(pitching_seasons: list, age: int, fip_constant: float, reference_distributions: dict = None) -> float:
+    if reference_distributions is None:
+        reference_distributions = league_references.pitcher_reference_distributions
+
+    fip = get_calculated_fip(pitching_seasons, fip_constant)
+    whip = get_calculated_whip(pitching_seasons)
+    k9 = get_calculated_k9(pitching_seasons)
+    durability = get_calculated_durability(pitching_seasons)
+
+    scaled_fip = 1 - get_percentile_score(fip, reference_distributions["fip"])
+    scaled_whip = 1 - get_percentile_score(whip, reference_distributions["whip"])
+    scaled_k9 = get_percentile_score(k9, reference_distributions["k9"])
+    scaled_durability = get_percentile_score(durability, reference_distributions["ip"])
+
+    a_multiplier = get_age_multiplier(age)
+
+    base_score = (scaled_fip * 0.4) + (scaled_whip * 0.25) + (scaled_k9 * 0.2) + (scaled_durability * 0.15)
+    return base_score * a_multiplier
+
+def get_pitcher_stat_breakdown(pitching_seasons: list, fip_constant: float, reference_distributions: dict = None) -> dict:
+    if reference_distributions is None:
+        reference_distributions = league_references.pitcher_reference_distributions
+
+    if not pitching_seasons:
+        return {"scoring_stats": [], "baseline_stats": []}
+
+    recent = pitching_seasons[-1]["stat"]
+    era = float(recent.get("era", 0))
+    whip = float(recent.get("whip", 0))
+    wins = float(recent.get("wins", 0))
+    saves = float(recent.get("saves", 0))
+    strikeouts = float(recent.get("strikeOuts", 0))
+    innings_pitched = parse_innings_pitched(recent.get("inningsPitched", "0.0"))
+
+    home_runs = float(recent.get("homeRuns", 0))
+    walks = float(recent.get("baseOnBalls", 0))
+    hit_by_pitch = float(recent.get("hitByPitch", 0))
+    fip = (((13 * home_runs) + (3 * (walks + hit_by_pitch)) - (2 * strikeouts)) / innings_pitched) + fip_constant
+
+    era_percent = round(100 * (1 - get_percentile_score(era, reference_distributions["era"])))
+    whip_percent = round(100 * (1 - get_percentile_score(whip, reference_distributions["whip"])))
+    wins_percent = round(100 * get_percentile_score(wins, reference_distributions["wins"]))
+    saves_percent = round(100 * get_percentile_score(saves, reference_distributions["saves"]))
+    strikeouts_percent = round(100 * get_percentile_score(strikeouts, reference_distributions["strikeouts"]))
+    ip_percent = round(100 * get_percentile_score(innings_pitched, reference_distributions["ip"]))
+    fip_percent = round(100 * (1 - get_percentile_score(fip, reference_distributions["fip"])))
+
+    scoring_stats = [
+        {"label": "W", "value": int(wins), "percentile": wins_percent},
+        {"label": "SV", "value": int(saves), "percentile": saves_percent},
+        {"label": "K", "value": int(strikeouts), "percentile": strikeouts_percent},
+        {"label": "IP", "value": round(innings_pitched, 1), "percentile": ip_percent},
+    ]
+
+    baseline_stats = [
+        {"label": "ERA", "value": round(era, 2), "percentile": era_percent},
+        {"label": "WHIP", "value": round(whip, 2), "percentile": whip_percent},
+        {"label": "FIP", "value": round(fip, 2), "percentile": fip_percent},
+    ]
+
+    return {"scoring_stats": scoring_stats, "baseline_stats": baseline_stats}

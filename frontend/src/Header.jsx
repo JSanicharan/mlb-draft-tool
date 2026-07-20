@@ -31,6 +31,9 @@ export default function Header() {
           <NavLink to="/" end className={navLinkClass}>
             Search
           </NavLink>
+          <NavLink to="/leaderboard" className={navLinkClass}>
+            Leaderboard
+          </NavLink>
           <NavLink
             to="/my-team"
             className={teamLinkClass}
@@ -56,6 +59,9 @@ export default function Header() {
         <nav className="nav nav-mobile">
           <NavLink to="/" end className={navLinkClass} onClick={() => setMenuOpen(false)}>
             Search
+          </NavLink>
+          <NavLink to="/leaderboard" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+            Leaderboard
           </NavLink>
           <NavLink
             to="/my-team"

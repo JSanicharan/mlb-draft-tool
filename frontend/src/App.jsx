@@ -4,6 +4,8 @@ import { Routes, Route, useNavigate } from 'react-router-dom'
 import PlayerCard from './PlayerCard'
 import Header from './Header'
 import MyTeam from './MyTeam'
+import Leaderboard from './Leaderboard'
+import PitcherCard from './PitcherCard'
 
 function App() {
   const [name, setName] = useState("");
@@ -56,7 +58,11 @@ function App() {
                     <span className="result-name">{player.fullName}</span>
                     <button
                       className="result-select"
-                      onClick={() => { setSelectedPlayer(player); navigate("/players/" + player.id); }}
+                      onClick={() => {
+  setSelectedPlayer(player);
+  const isPitcher = player.primaryPosition?.abbreviation === "P";
+  navigate(isPitcher ? "/pitchers/" + player.id : "/players/" + player.id);
+}}
                     >
                       Select
                     </button>
@@ -72,6 +78,8 @@ function App() {
         } />
         <Route path="/players/:playerId" element={<PlayerCard />} />
         <Route path="/my-team" element={<MyTeam />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/pitchers/:playerId" element={<PitcherCard />} />
       </Routes>
     </>
   )

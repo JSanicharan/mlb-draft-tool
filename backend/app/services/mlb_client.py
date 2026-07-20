@@ -50,3 +50,32 @@ async def get_player_bundle(player_id : int):
     "bat_side": bat_side,
     "throw_side": throw_side,
     }
+
+async def get_career_pitching_stats(player_id:int):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(f"https://statsapi.mlb.com/api/v1/people/{player_id}/stats", params={"stats": "yearByYear", "group": "pitching"})
+        return response.json()
+
+async def get_pitcher_bundle(player_id: int):
+    player_info, pitching = await asyncio.gather(
+        get_player_info(player_id),
+        get_career_pitching_stats(player_id),
+    )
+    if not player_info.get("people"):
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    pitching_seasons = pitching["stats"][0]["splits"]
+    age = player_info["people"][0]["currentAge"]
+    position = player_info["people"][0]["primaryPosition"]["abbreviation"]
+    name = player_info["people"][0]["fullName"]
+    team = player_info["people"][0]["currentTeam"]["name"]
+    throw_side = player_info["people"][0]["pitchHand"]
+
+    return {
+        "pitching_seasons": pitching_seasons,
+        "age": age,
+        "position": position,
+        "name": name,
+        "team": team,
+        "throw_side": throw_side,
+    }
